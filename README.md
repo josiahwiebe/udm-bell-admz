@@ -16,11 +16,17 @@
 
 ### How UDM-Bell-ADMZ Fixes the Issue
 
-When the router detects it has received an internal IP address, the following steps are performed automatically:
+When the router detects it has received an internal IP address, the container runs one of three fix modes:
+
+- **`toggle` (default)** – Disable/enable the ADMZ on the modem while keeping the existing host entry, re-enable DHCP, flush leases, optionally reboot the modem, and force the router WAN interface to renew its DHCP lease so it asks for a new public IP.
+- **`toggle_then_mac`** – Attempt the toggle flow up to `TOGGLE_RETRY_LIMIT` times and fall back to the legacy MAC-change workflow if toggling never produces a valid public IP.
+- **`mac_only`** – Always run the legacy MAC-change workflow that generates a new MAC and reboots the modem.
+
+The legacy MAC-change workflow still performs the following steps:
 
 - **[Router]** Generate a random MAC address for the WAN interface.
 - **[Router]** Set WAN interface to a static IP.
-- **[Modem]** Set the new MAC address for ADMZ.
+- **[Modem]** Register the new MAC address for ADMZ.
 - **[Modem]** Enable ADMZ and DHCP.
 - **[Modem]** Flush DHCP leases.
 - **[Modem]** Reboot.
@@ -70,6 +76,9 @@ docker run --rm -it \
 | `UNIFI_USERNAME`    | (None)             | Yes      | Username for router login.                 |
 | `UNIFI_PASSWORD`    | (None)             | Yes      | Password for router login.                 |
 | `UNIFI_WAN_NAME`    | (None)             | Yes      | Name of WAN interface (typically WAN).     |
+| `FIX_MODE`         | `toggle`           | No       | Fix workflow mode (`toggle`, `toggle_then_mac`, `mac_only`). |
+| `TOGGLE_RETRY_LIMIT` | `2`                | No       | Number of toggle attempts before falling back to MAC change when `FIX_MODE=toggle_then_mac`. |
+| `TOGGLE_REBOOT_AFTER_TOGGLE` | `True`           | No       | Whether to reboot the modem after toggling ADMZ. |
 | `RUN_ONCE_AND_EXIT` | `False`            | No       | Run once and exit if `True`.                |
 | `CHECK_INTERVAL`    | `60`               | No       | Interval between checks (seconds).         |
 
